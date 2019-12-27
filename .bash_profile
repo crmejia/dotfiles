@@ -12,6 +12,33 @@ if [ -f $(brew --prefix)/etc/bash_completion ]; then
 . $(brew --prefix)/etc/bash_completion
 fi
 source <(kubectl completion bash)
+ # from https://github.com/git/git/blob/master/contrib/completion/git-prompt.bash
+source ~/.git-prompt.sh
+
+#fzf
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
+#pentagon workstation venv
+
+function kubernetes-context()
+{
+  if kubectl config current-context >/dev/null 2>/dev/null; then
+    local KUBERNETES_CONTEXT=$(kubectl config current-context 2>/dev/null)
+    local HAS_NAMESPACE=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBERNETES_CONTEXT"'")].context.namespace}')
+    local NAMESPACE=${HAS_NAMESPACE:-default}
+    printf $KUBERNETES_CONTEXT[$NAMESPACE]
+  elif [[ -n "${KUBECONFIG}" ]]; then
+    local KUBERNETES_CONTEXT=$(kubectl config view -o go-template --template '{{if not .contexts}}None{{else}} .contexts[0].context.cluster {{end}}')
+    # local KUBERNETES_CONTEXT=$(kubectl config view -o jsonpath='{.contexts[0].context.cluster}')
+    local HAS_NAMESPACE=$(kubectl config view -o jsonpath='{.contexts[?(@.context.cluster == "'"$KUBERNETES_CONTEXT"'")].context.namespace}')
+    local NAMESPACE=${HAS_NAMESPACE:-default}
+    printf $KUBERNETES_CONTEXT[$NAMESPACE]
+  else
+    printf ""
+  fi
+}
+
+export PENTAGON_WORKON_PS1='\A [$(__git_ps1 "%s | " || echo "")k:$(kubernetes-context)]$Color_Off \W\n \$ '
 
 # # The next line updates PATH for the Google Cloud SDK.
 # if [ -f '/Users/crismarmejia/google-cloud-sdk/path.bash.inc' ]; then source '/Users/crismarmejia/google-cloud-sdk/path.bash.inc'; fi
